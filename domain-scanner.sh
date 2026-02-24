@@ -26,7 +26,45 @@ run_amass() {
     amass enum -active -d $domain -o "$output_dir/${domain}_amass.txt"
 }
 
-# Other functions remain the same...
+# Function to test subdomains for connectivity
+test_subdomains() {
+  domain=$1
+  output_dir="./$domain"
+  mkdir -p "$output_dir"
+
+  amass_output="$output_dir/${domain}_amass.txt"
+  echo "Testing subdomains for $domain..."
+  live_subdomains=""
+  while read subdomain; do
+    echo "Testing $subdomain..."
+    if curl -s --head "$subdomain" 2>&1 | grep "HTTP/1.[01] [23]"; then
+      echo "$subdomain is up (HTTP)"
+      live_subdomains+="$subdomain"$'\n'
+    elif curl -s --head "https://$subdomain" 2>&1 | grep "HTTP/1.[01] [23]"; then
+      echo "$subdomain is up (HTTPS)"
+      live_subdomains+="$subdomain"$'\n'
+    else
+      echo "$subdomain is down"
+
+scan_ports() {
+  domain=$1
+  output_dir="./$domain"
+  mkdir -p "$output_dir"
+
+  echo "Scanning ports for $domain..."
+  nmap -T4 -sS -Pn $domain -oG "$output_dir/${domain}_nmap.gnmap" > /dev/null
+}
+
+# Function to get the IP address of the domain
+get_ip() {
+  domain=$1
+  output_dir="./$domain"
+  mkdir -p "$output_dir"
+
+  echo "Getting IP address for $domain..."
+  ip=$(dig +short $domain | head -n 1)
+  echo "IP address: $ip"
+}
 
 # Main execution loop
 main() {
